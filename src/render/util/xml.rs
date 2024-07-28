@@ -1,28 +1,35 @@
-use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind};
-use lazy_static::lazy_static;
+use aho_corasick::{AhoCorasick, AhoCorasickBuilder, AhoCorasickKind, MatchKind};
+use once_cell::sync::Lazy;
 use regex::Regex;
 
 const XML_ESCAPE_PATTERNS: [&str; 5] = ["&", "<", ">", "\"", "'"];
 const XML_ESCAPE_REPLACEMENTS: [&str; 5] = ["&amp;", "&lt;", "&gt;", "&quot;", "&apos;"];
 
 const XML_STRIP_TRAILING_PATTERNS_LEN: usize = 8;
-
-lazy_static! {
-    static ref XML_STRIP_TRAILING_PATTERNS: (Vec<String>, Vec<String>) = {
-        let a = aho_corasick_pattern_builder(XML_STRIP_TRAILING_PATTERNS_LEN, ">", " ");
-        let b = aho_corasick_pattern_builder(XML_STRIP_TRAILING_PATTERNS_LEN, ">\n", " ");
-        combine_builders(a, b)
-    };
-}
-
+static XML_STRIP_TRAILING_PATTERNS: Lazy<(Vec<String>, Vec<String>)> = Lazy::new(|| {
+    let a = aho_corasick_pattern_builder(XML_STRIP_TRAILING_PATTERNS_LEN, ">", " ");
+    let b = aho_corasick_pattern_builder(XML_STRIP_TRAILING_PATTERNS_LEN, ">\n", " ");
+    combine_builders(a, b)
+});
+static FILL_PATTERN: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"fill=[^\s]+").expect("Failed to build regex"));
+static STRIP_TRAILING: Lazy<AhoCorasick> = Lazy::new(|| {
+    AhoCorasickBuilder::new()
+        .match_kind(MatchKind::LeftmostFirst)
+        .build(&XML_STRIP_TRAILING_PATTERNS.0)
+        .expect("Failed to build AhoCorasick")
+});
+static ESCAPE_XML: Lazy<AhoCorasick> = Lazy::new(|| {
+    AhoCorasickBuilder::new()
+        .kind(Some(AhoCorasickKind::DFA))
+        .build(&XML_ESCAPE_PATTERNS)
+        .expect("Failed to build AhoCorasick")
+});
 /// Finds the fill value defined or if not defined will add a default value.
 /// # Arguments
 /// `svg` - The svg to search.
 /// `replace_with` - The value to replace the fill with.
 pub(crate) fn replace_fill_attribute(svg: &str, replace_with: &str) -> String {
-    lazy_static! {
-        static ref FILL_PATTERN: Regex = Regex::new(r"fill=[^\s]+").unwrap();
-    }
     if FILL_PATTERN.is_match(svg) {
         FILL_PATTERN.replace_all(svg, replace_with).to_string()
     } else {
@@ -43,24 +50,11 @@ pub fn test_replace_fill_attribute() {
 }
 
 fn strip_xml_trailing_aho(s: &str) -> String {
-    lazy_static! {
-        static ref AC: AhoCorasick = AhoCorasickBuilder::new()
-            .auto_configure(&XML_STRIP_TRAILING_PATTERNS.0)
-            .match_kind(MatchKind::LeftmostFirst)
-            .build(&XML_STRIP_TRAILING_PATTERNS.0);
-    }
-
-    AC.replace_all(s, &XML_STRIP_TRAILING_PATTERNS.1)
+    STRIP_TRAILING.replace_all(s, &XML_STRIP_TRAILING_PATTERNS.1)
 }
 
 pub(crate) fn escape_xml(s: &str) -> String {
-    lazy_static! {
-        static ref AC: AhoCorasick = AhoCorasickBuilder::new()
-            .dfa(true)
-            .build(&XML_ESCAPE_PATTERNS);
-    }
-
-    AC.replace_all(s, &XML_ESCAPE_REPLACEMENTS)
+    ESCAPE_XML.replace_all(s, &XML_ESCAPE_REPLACEMENTS)
 }
 
 pub(crate) fn strip_xml_whitespace(s: &str) -> String {

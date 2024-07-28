@@ -1,5 +1,6 @@
 use crate::badge::Logo;
 use crate::render::util::xml::{escape_xml, replace_fill_attribute};
+use base64::{engine::general_purpose::STANDARD, Engine};
 use itoa::Buffer;
 use std::fmt::Write;
 
@@ -36,9 +37,9 @@ pub fn render_logo(config: RenderLogoConfig) -> RenderLogoReturn {
         Logo::SVGLogo { svg, color, .. } => {
             if let Some(ref color) = color {
                 let value = replace_fill_attribute(svg, &format!("fill=\"{}\"", color));
-                format!("{}{}", BASE_64_SVG_IMAGE, base64::encode(value))
+                format!("{}{}", BASE_64_SVG_IMAGE, STANDARD.encode(value))
             } else {
-                format!("{}{}", BASE_64_SVG_IMAGE, base64::encode(svg))
+                format!("{}{}", BASE_64_SVG_IMAGE, STANDARD.encode(svg))
             }
         }
     };

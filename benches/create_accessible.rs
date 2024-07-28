@@ -1,7 +1,3 @@
-use aho_corasick::{AhoCorasick, AhoCorasickBuilder};
-use badge_maker::Links;
-use lazy_static::lazy_static;
-
 pub fn create_accessible_text_old(label: &Option<String>, message: &str) -> String {
     if let Some(label) = label {
         format!("{}: {}", label, message)

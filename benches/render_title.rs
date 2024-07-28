@@ -1,17 +1,17 @@
 use aho_corasick::{AhoCorasick, AhoCorasickBuilder};
 use badge_maker::Links;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 
 const XML_ESCAPE_PATTERNS: [&str; 5] = ["&", "<", ">", "\"", "'"];
 const XML_ESCAPE_REPLACEMENTS: [&str; 5] = ["&amp;", "&lt;", "&gt;", "&quot;", "&apos;"];
 
 pub fn escape_xml(s: &str) -> String {
-    lazy_static! {
-        static ref AC: AhoCorasick = AhoCorasickBuilder::new()
-            .dfa(true)
-            .build(&XML_ESCAPE_PATTERNS);
-    };
-
+    static AC: Lazy<AhoCorasick> = Lazy::new(|| {
+        AhoCorasickBuilder::new()
+            .kind(Some(aho_corasick::AhoCorasickKind::DFA))
+            .build(&XML_ESCAPE_PATTERNS)
+            .unwrap()
+    });
     AC.replace_all(s, &XML_ESCAPE_REPLACEMENTS)
 }
 

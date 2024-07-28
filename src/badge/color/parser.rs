@@ -3,7 +3,7 @@ use crate::badge::color::AliasColor::*;
 use crate::badge::color::NamedColor::*;
 use crate::error::Error;
 use crate::error::Error::BadColorString;
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use std::num::ParseIntError;
 
@@ -50,9 +50,8 @@ fn is_enum_color(color: &str) -> Option<&str> {
 }
 
 fn is_hex_no_pound(color: &str) -> Option<&str> {
-    lazy_static! {
-        static ref HEX_NO_POUND: Regex = Regex::new("^(?:[0-9a-fA-F]{3}){1,2}$").unwrap();
-    };
+    static HEX_NO_POUND: Lazy<Regex> =
+        Lazy::new(|| Regex::new("^(?:[0-9a-fA-F]{3}){1,2}$").unwrap());
 
     if HEX_NO_POUND.is_match(color) {
         Some(color)
@@ -60,11 +59,8 @@ fn is_hex_no_pound(color: &str) -> Option<&str> {
         None
     }
 }
-
 fn is_hex_pound(color: &str) -> Option<&str> {
-    lazy_static! {
-        static ref HEX_POUND: Regex = Regex::new("^#(?:[0-9a-fA-F]{3}){1,2}$").unwrap();
-    };
+    static HEX_POUND: Lazy<Regex> = Lazy::new(|| Regex::new("^#(?:[0-9a-fA-F]{3}){1,2}$").unwrap());
 
     if HEX_POUND.is_match(color) {
         Some(color)
@@ -74,11 +70,10 @@ fn is_hex_pound(color: &str) -> Option<&str> {
 }
 
 fn is_rgb(color: &str) -> Option<(u8, u8, u8)> {
-    lazy_static! {
-      static ref RGB: Regex = Regex::new(r"^rgb\((( *0*([1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5]) *),){2}( *0*([1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5]) *)\)$").unwrap();
-      static ref DIGITS: Regex = Regex::new(r"\d+").unwrap();
-    };
-
+    static RGB: Lazy<Regex> = Lazy::new(|| {
+        Regex::new(r"^rgb\((( *0*([1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5]) *),){2}( *0*([1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5]) *)\)$").unwrap()
+    });
+    static DIGITS: Lazy<Regex> = Lazy::new(|| Regex::new(r"\d+").unwrap());
     if RGB.is_match(color) {
         let digits = DIGITS
             .find_iter(color)

@@ -1,6 +1,6 @@
 use aho_corasick::{AhoCorasick, AhoCorasickBuilder, MatchKind};
 
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use regex::Regex;
 
 pub const SVG_TO_STRIP: &'static str = r###"<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="340" height="20" role="img"
@@ -35,24 +35,17 @@ pub const SVG_TO_STRIP: &'static str = r###"<svg xmlns="http://www.w3.org/2000/s
 pub const TEXT_TO_ESCAPE: &'static str = r###"Hello there!"###;
 const XML_ESCAPE_PATTERNS: [&str; 5] = ["&", "<", ">", "\"", "'"];
 const XML_ESCAPE_REPLACEMENTS: [&str; 5] = ["&amp;", "&lt;", "&gt;", "&quot;", "&apos;"];
-
-lazy_static! {
-    static ref TRAILING_SPACE: Regex = Regex::new(r">\s+").unwrap();
-}
-
-lazy_static! {
-    static ref TRAILING_SPACE_BYTES: regex::bytes::Regex =
-        regex::bytes::Regex::new(r">\s+").unwrap();
-}
+static TRAILING_SPACE: Lazy<Regex> = Lazy::new(|| Regex::new(r">\s+").unwrap());
+static TRAILING_SPACE_BYTES: Lazy<regex::bytes::Regex> =
+    Lazy::new(|| regex::bytes::Regex::new(r">\s+").unwrap());
 
 const XML_STRIP_TRAILING_PATTERNS_LEN: usize = 8;
-lazy_static! {
-    static ref XML_STRIP_TRAILING_PATTERNS: (Vec<String>, Vec<String>) = {
-        let a = aho_corasick_pattern_builder(XML_STRIP_TRAILING_PATTERNS_LEN, ">", " ");
-        let b = aho_corasick_pattern_builder(XML_STRIP_TRAILING_PATTERNS_LEN, ">\n", " ");
-        combine_builders(a, b)
-    };
-}
+
+static XML_STRIP_TRAILING_PATTERNS: Lazy<(Vec<String>, Vec<String>)> = Lazy::new(|| {
+    let a = aho_corasick_pattern_builder(XML_STRIP_TRAILING_PATTERNS_LEN, ">", " ");
+    let b = aho_corasick_pattern_builder(XML_STRIP_TRAILING_PATTERNS_LEN, ">\n", " ");
+    combine_builders(a, b)
+});
 
 pub fn aho_corasick_pattern_builder(
     size: usize,
@@ -91,24 +84,23 @@ pub fn strip_xml_trailing_replace_all(s: &str) -> String {
 }
 
 pub fn strip_xml_trailing_aho(s: &str) -> String {
-    lazy_static! {
-        static ref AC: AhoCorasick = AhoCorasickBuilder::new()
-            .auto_configure(&XML_STRIP_TRAILING_PATTERNS.0)
+    static AC: Lazy<AhoCorasick> = Lazy::new(|| {
+        AhoCorasickBuilder::new()
             .match_kind(MatchKind::LeftmostFirst)
-            .build(&XML_STRIP_TRAILING_PATTERNS.0);
-    };
+            .build(&XML_STRIP_TRAILING_PATTERNS.0)
+            .unwrap()
+    });
 
     AC.replace_all(&s, &XML_STRIP_TRAILING_PATTERNS.1)
 }
 
 pub fn strip_xml_trailing_aho_sized(s: &str) -> String {
-    lazy_static! {
-        static ref AC: AhoCorasick<u16> = AhoCorasickBuilder::new()
-            .auto_configure(&XML_STRIP_TRAILING_PATTERNS.0)
+    static AC: Lazy<AhoCorasick> = Lazy::new(|| {
+        AhoCorasickBuilder::new()
             .match_kind(MatchKind::LeftmostFirst)
-            .build_with_size(&XML_STRIP_TRAILING_PATTERNS.0)
-            .unwrap();
-    };
+            .build(&XML_STRIP_TRAILING_PATTERNS.0)
+            .unwrap()
+    });
 
     AC.replace_all(&s, &XML_STRIP_TRAILING_PATTERNS.1)
 }
@@ -131,51 +123,50 @@ pub fn escape_xml_old(s: &str) -> String {
 }
 
 pub fn escape_xml_static(s: &str) -> String {
-    lazy_static! {
-        static ref AC: AhoCorasick = AhoCorasickBuilder::new().build(&XML_ESCAPE_PATTERNS);
-    };
-
+    static AC: Lazy<AhoCorasick> = Lazy::new(|| {
+        AhoCorasickBuilder::new()
+            .build(&XML_ESCAPE_PATTERNS)
+            .unwrap()
+    });
     AC.replace_all(s, &XML_ESCAPE_REPLACEMENTS)
 }
 
 pub fn escape_xml_optimized(s: &str) -> String {
-    lazy_static! {
-        static ref AC: AhoCorasick = AhoCorasickBuilder::new()
-            .dfa(true)
-            .build(&XML_ESCAPE_PATTERNS);
-    };
+    static AC: Lazy<AhoCorasick> = Lazy::new(|| {
+        AhoCorasickBuilder::new()
+            .kind(Some(aho_corasick::AhoCorasickKind::DFA))
+            .build(&XML_ESCAPE_PATTERNS)
+            .unwrap()
+    });
 
     AC.replace_all(s, &XML_ESCAPE_REPLACEMENTS)
 }
 
 pub fn escape_xml_auto_optimized(s: &str) -> String {
-    lazy_static! {
-        static ref AC: AhoCorasick = AhoCorasickBuilder::new()
-            .auto_configure(&XML_ESCAPE_REPLACEMENTS)
-            .build(&XML_ESCAPE_PATTERNS);
-    };
+    static AC: Lazy<AhoCorasick> = Lazy::new(|| {
+        AhoCorasickBuilder::new()
+            .build(&XML_ESCAPE_PATTERNS)
+            .unwrap()
+    });
 
     AC.replace_all(s, &XML_ESCAPE_REPLACEMENTS)
 }
 
 pub fn escape_xml_optimized_sized(s: &str) -> String {
-    lazy_static! {
-        static ref AC: AhoCorasick<u8> = AhoCorasickBuilder::new()
-            .dfa(true)
-            .build_with_size(&XML_ESCAPE_PATTERNS)
-            .unwrap();
-    };
-
+    static AC: Lazy<AhoCorasick> = Lazy::new(|| {
+        AhoCorasickBuilder::new()
+            .kind(Some(aho_corasick::AhoCorasickKind::DFA))
+            .build(&XML_ESCAPE_PATTERNS)
+            .unwrap()
+    });
     AC.replace_all(s, &XML_ESCAPE_REPLACEMENTS)
 }
 
 pub fn escape_xml_auto_optimized_sized(s: &str) -> String {
-    lazy_static! {
-        static ref AC: AhoCorasick<u16> = AhoCorasickBuilder::new()
-            .auto_configure(&XML_ESCAPE_REPLACEMENTS)
-            .build_with_size(&XML_ESCAPE_PATTERNS)
-            .unwrap();
-    };
-
+    static AC: Lazy<AhoCorasick> = Lazy::new(|| {
+        AhoCorasickBuilder::new()
+            .build(&XML_ESCAPE_PATTERNS)
+            .unwrap()
+    });
     AC.replace_all(s, &XML_ESCAPE_REPLACEMENTS)
 }

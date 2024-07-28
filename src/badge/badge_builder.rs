@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 use crate::badge::color::util::get_color_from_option;
 use crate::badge::color::{Color, NamedColor};
+use crate::badge::style::Style;
 use crate::badge::style::Style::Flat;
-use crate::badge::style::{parse_style, Style};
 use crate::badge::{Badge, Links, Logo};
 use crate::error::Error;
 use crate::error::Error::MessageNotSet;
@@ -176,7 +178,7 @@ impl BadgeBuilder {
         let style = if let Some(style) = self.style {
             style
         } else if let Some(style) = self.style_parse.as_ref() {
-            parse_style(style)?
+            Style::from_str(style)?
         } else {
             DEFAULT_STYLE
         };

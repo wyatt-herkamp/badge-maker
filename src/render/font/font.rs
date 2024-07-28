@@ -1,22 +1,20 @@
+use once_cell::sync::Lazy;
+
 use crate::render::font::char_datum::CharDatum;
 use crate::render::font::util::is_control_char;
-use lazy_static::lazy_static;
 
-lazy_static! {
-  static ref FONTS: [Vec<CharDatum>; 1] = {
+static FONTS: Lazy<[Vec<CharDatum>; 1]> = Lazy::new(|| {
     // let helv = include_bytes!("../../fonts/helvetica-11px-bold.bincode");
     // let verd10bold = include_bytes!("../../fonts/verdana-10px-bold.bincode");
     // let verd10 = include_bytes!("../../fonts/verdana-10px-normal.bincode");
     let verd11 = include_bytes!("../../../fonts/verdana-11px-normal.bincode");
     [
-         bincode::deserialize(verd11).unwrap(),
-      // bincode::deserialize(helv).unwrap(),
-      // bincode::deserialize(verd10bold).unwrap(),
-      // bincode::deserialize(verd10).unwrap(),
+        bincode::deserialize(verd11).unwrap(),
+        // bincode::deserialize(helv).unwrap(),
+        // bincode::deserialize(verd10bold).unwrap(),
+        // bincode::deserialize(verd10).unwrap(),
     ]
-  };
-}
-
+});
 pub enum Font {
     Verdana11Px,
     // Helvetica11PxBold, unused, needed for new badges
